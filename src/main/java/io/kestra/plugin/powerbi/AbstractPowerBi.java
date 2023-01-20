@@ -9,6 +9,7 @@ import io.micronaut.http.*;
 import io.micronaut.http.client.DefaultHttpClientConfiguration;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
+import io.micronaut.http.client.netty.NettyHttpClientFactory;
 import io.micronaut.http.uri.UriTemplate;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
@@ -56,8 +57,11 @@ public abstract class AbstractPowerBi extends Task  {
     @Getter(AccessLevel.NONE)
     private transient String token;
 
+    private static final NettyHttpClientFactory FACTORY = new NettyHttpClientFactory();
+
+
     protected HttpClient client(String base) throws IllegalVariableEvaluationException, MalformedURLException, URISyntaxException {
-        return HttpClient.create(URI.create(base).toURL(), new DefaultHttpClientConfiguration());
+        return FACTORY.createClient(URI.create(base).toURL(), new DefaultHttpClientConfiguration());
     }
 
 
