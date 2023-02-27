@@ -9,7 +9,9 @@ import io.micronaut.http.*;
 import io.micronaut.http.client.DefaultHttpClientConfiguration;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
+import io.micronaut.http.client.netty.DefaultHttpClient;
 import io.micronaut.http.client.netty.NettyHttpClientFactory;
+import io.micronaut.http.codec.MediaTypeCodecRegistry;
 import io.micronaut.http.uri.UriTemplate;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
@@ -60,10 +62,14 @@ public abstract class AbstractPowerBi extends Task  {
     private static final NettyHttpClientFactory FACTORY = new NettyHttpClientFactory();
 
 
-    protected HttpClient client(String base) throws IllegalVariableEvaluationException, MalformedURLException, URISyntaxException {
-        return FACTORY.createClient(URI.create(base).toURL(), new DefaultHttpClientConfiguration());
-    }
+    protected HttpClient client(RunContext runContext, String base) throws IllegalVariableEvaluationException, MalformedURLException, URISyntaxException {
+        MediaTypeCodecRegistry mediaTypeCodecRegistry = runContext.getApplicationContext().getBean(MediaTypeCodecRegistry.class);
 
+        DefaultHttpClient client = (DefaultHttpClient) FACTORY.createClient(URI.create(base).toURL(), new DefaultHttpClientConfiguration());
+        client.setMediaTypeCodecRegistry(mediaTypeCodecRegistry);
+
+        return client;
+    }
 
     private String token(RunContext runContext) throws IllegalVariableEvaluationException, MalformedURLException, URISyntaxException {
         if (this.token != null) {
@@ -84,7 +90,7 @@ public abstract class AbstractPowerBi extends Task  {
                 "&scope=https://analysis.windows.net/powerbi/api/.default"
             );
 
-        try (HttpClient client = this.client("https://login.microsoftonline.com")) {
+        try (HttpClient client = this.client(runContext, "https://login.microsoftonline.com")) {
             HttpResponse<Map<String, String>> exchange = client.toBlocking().exchange(request, Argument.mapOf(String.class, String.class));
 
             Map<String, String> token = exchange.body();
@@ -104,7 +110,7 @@ public abstract class AbstractPowerBi extends Task  {
                 .bearerAuth(this.token(runContext))
                 .contentType(MediaType.APPLICATION_JSON);
 
-            try (HttpClient client = this.client("https://api.powerbi.com/")) {
+            try (HttpClient client = this.client(runContext, "https://api.powerbi.com/")) {
                 return client.toBlocking().exchange(request, argument);
             }
         } catch (HttpClientResponseException e) {
