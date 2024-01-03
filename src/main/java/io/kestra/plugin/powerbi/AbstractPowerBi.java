@@ -16,7 +16,6 @@ import io.micronaut.http.uri.UriTemplate;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-import org.apache.commons.lang3.mutable.Mutable;
 
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -24,8 +23,8 @@ import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Map;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 
 @SuperBuilder
 @ToString
