@@ -52,6 +52,14 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
     private Boolean wait = false;
 
     @Schema(
+        title = "The duration we need wait between poll."
+    )
+    @NotNull
+    @Builder.Default
+    @PluginProperty(dynamic = false)
+    private final Duration pollDuration = Duration.ofSeconds(5);
+
+    @Schema(
         title = "The maximum duration we need to wait until the refresh complete."
     )
     @NotNull
@@ -132,7 +140,7 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
                     throw new Exception(e);
                 }
             }),
-            Duration.ofMillis(2000),
+            this.pollDuration,
             this.waitDuration
         );
 

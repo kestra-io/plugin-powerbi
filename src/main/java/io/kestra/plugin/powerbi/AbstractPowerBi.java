@@ -22,6 +22,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Map;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
@@ -59,13 +60,16 @@ public abstract class AbstractPowerBi extends Task  {
     @Getter(AccessLevel.NONE)
     private transient String token;
 
+    private static final Duration HTTP_READ_TIMEOUT = Duration.ofSeconds(60);
     private static final NettyHttpClientFactory FACTORY = new NettyHttpClientFactory();
-
 
     protected HttpClient client(RunContext runContext, String base) throws IllegalVariableEvaluationException, MalformedURLException, URISyntaxException {
         MediaTypeCodecRegistry mediaTypeCodecRegistry = runContext.getApplicationContext().getBean(MediaTypeCodecRegistry.class);
 
-        DefaultHttpClient client = (DefaultHttpClient) FACTORY.createClient(URI.create(base).toURL(), new DefaultHttpClientConfiguration());
+        DefaultHttpClientConfiguration configuration = new DefaultHttpClientConfiguration();
+        configuration.setReadTimeout(HTTP_READ_TIMEOUT);
+
+        DefaultHttpClient client = (DefaultHttpClient) FACTORY.createClient(URI.create(base).toURL(), configuration);
         client.setMediaTypeCodecRegistry(mediaTypeCodecRegistry);
 
         return client;
