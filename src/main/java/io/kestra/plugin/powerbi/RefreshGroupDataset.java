@@ -16,6 +16,7 @@ import io.kestra.core.runners.RunContext;
 import org.slf4j.Logger;
 
 import java.time.Duration;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -143,6 +144,10 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
             this.pollDuration,
             this.waitDuration
         );
+
+        if (!result.getStatus().toLowerCase(Locale.ROOT).equals("completed")) {
+            throw new Exception("Refresh failed with status '" + result.getStatus() + "' with response " + result);
+        }
 
         return Output.builder()
             .requestId(refreshId)
