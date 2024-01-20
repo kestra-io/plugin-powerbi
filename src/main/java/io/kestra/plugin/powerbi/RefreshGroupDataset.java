@@ -49,7 +49,8 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
     @Schema(
         title = "Wait for refresh completion."
     )
-    @PluginProperty(dynamic = false)
+    @PluginProperty
+    @Builder.Default
     private Boolean wait = false;
 
     @Schema(
@@ -57,7 +58,7 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
     )
     @NotNull
     @Builder.Default
-    @PluginProperty(dynamic = false)
+    @PluginProperty
     private final Duration pollDuration = Duration.ofSeconds(5);
 
     @Schema(
@@ -65,7 +66,7 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
     )
     @NotNull
     @Builder.Default
-    @PluginProperty(dynamic = false)
+    @PluginProperty
     private final Duration waitDuration = Duration.ofMinutes(10);
 
     @Override
