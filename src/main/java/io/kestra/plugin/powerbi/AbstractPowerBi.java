@@ -36,7 +36,7 @@ public abstract class AbstractPowerBi extends Task  {
     @NotNull
     @NotEmpty
     @Schema(
-        title = "Azure username."
+        title = "Azure tenant ID."
     )
     @PluginProperty(dynamic = true)
     private String tenantId;
