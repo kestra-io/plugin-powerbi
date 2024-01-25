@@ -35,13 +35,13 @@ import static io.kestra.core.utils.Rethrow.throwSupplier;
 )
 public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask<RefreshGroupDataset.Output> {
     @Schema(
-        title = "The workspace ID"
+        title = "The workspace ID."
     )
     @PluginProperty(dynamic = true)
     private String groupId;
 
     @Schema(
-        title = "The dataset ID"
+        title = "The dataset ID."
     )
     @PluginProperty(dynamic = true)
     private String datasetId;
@@ -54,7 +54,7 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
     private Boolean wait = false;
 
     @Schema(
-        title = "The duration we need wait between poll."
+        title = "The duration to wait between the polls."
     )
     @NotNull
     @Builder.Default
@@ -62,7 +62,7 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
     private final Duration pollDuration = Duration.ofSeconds(5);
 
     @Schema(
-        title = "The maximum duration we need to wait until the refresh complete."
+        title = "The maximum duration to wait until the refresh completes."
     )
     @NotNull
     @Builder.Default
@@ -160,13 +160,13 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         @Schema(
-            title = "The request id."
+            title = "The request ID."
         )
         private String requestId;
 
         @Schema(
             title = "The request status.",
-            description = "Only available if `wait` = `true`"
+            description = "Only populated if `wait` parameter is set to `true`."
         )
         private String status;
     }
