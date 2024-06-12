@@ -3,6 +3,7 @@ package io.kestra.plugin.powerbi;
 import io.kestra.core.exceptions.IllegalVariableEvaluationException;
 import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.tasks.Task;
+import io.kestra.core.runners.DefaultRunContext;
 import io.kestra.core.runners.RunContext;
 import io.micronaut.core.type.Argument;
 import io.micronaut.http.*;
@@ -20,7 +21,6 @@ import lombok.experimental.SuperBuilder;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Map;
 import jakarta.validation.constraints.NotEmpty;
@@ -63,7 +63,7 @@ public abstract class AbstractPowerBi extends Task  {
     private static final NettyHttpClientFactory FACTORY = new NettyHttpClientFactory();
 
     protected HttpClient client(RunContext runContext, String base) throws IllegalVariableEvaluationException, MalformedURLException, URISyntaxException {
-        MediaTypeCodecRegistry mediaTypeCodecRegistry = runContext.getApplicationContext().getBean(MediaTypeCodecRegistry.class);
+        MediaTypeCodecRegistry mediaTypeCodecRegistry = ((DefaultRunContext)runContext).getApplicationContext().getBean(MediaTypeCodecRegistry.class);
 
         DefaultHttpClientConfiguration configuration = new DefaultHttpClientConfiguration();
         configuration.setReadTimeout(HTTP_READ_TIMEOUT);
