@@ -1,0 +1,37 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/v1.0/myorg/groups/group/datasets/dataset/refreshes"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": [
+      {
+        "requestId": "1344a272-7893-4afa-a4b3-3fb87222fdac",
+        "refreshType": "ViaEnhancedApi",
+        "startTime": "2020-12-07T02:06:57.1838734Z",
+        "endTime": "2020-12-07T02:07:00.4929675Z",
+        "status": "Completed",
+        "extendedStatus": "Completed"
+      },
+      {
+        "requestId": "474fc5a0-3d69-4c5d-adb4-8a846fa5580b",
+        "startTime": "2020-12-07T01:05:54.157324Z",
+        "refreshType": "ViaEnhancedApi",
+        "endTime": "2020-12-07T01:05:57.353371Z",
+        "status": "Unknown"
+      },
+      {
+        "requestId": "85a82498-2209-428c-b273-f87b3a1eb905",
+        "refreshType": "ViaEnhancedApi",
+        "startTime": "2020-12-07T01:05:54.157324Z",
+        "endTime": "2020-12-07T01:05:57.353371Z",
+        "status": "Unknown",
+        "extendedStatus": "NotStarted"
+      }
+    ]
+  }
+}

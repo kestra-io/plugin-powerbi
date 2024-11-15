@@ -1,0 +1,15 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/tenant/oauth2/token"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "access_token": "access_token"
+    }
+  }
+}

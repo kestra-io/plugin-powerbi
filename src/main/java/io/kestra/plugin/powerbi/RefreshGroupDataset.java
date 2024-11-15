@@ -2,7 +2,6 @@ package io.kestra.plugin.powerbi;
 
 import io.kestra.core.utils.Await;
 import io.kestra.plugin.powerbi.models.Refresh;
-import io.kestra.plugin.powerbi.models.Refreshes;
 import io.micronaut.core.type.Argument;
 import io.micronaut.http.*;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
@@ -16,9 +15,7 @@ import io.kestra.core.runners.RunContext;
 import org.slf4j.Logger;
 
 import java.time.Duration;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import jakarta.validation.constraints.NotNull;
 
@@ -86,7 +83,7 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
             Argument.of(Object.class)
         );
 
-        String refreshId = create.getHeaders().get("RequestId");
+        String refreshId = create.getHeaders().get("x-ms-request-id");
 
         if (refreshId == null) {
             throw new IllegalStateException("Invalid request, missing RequestId headers, " +
@@ -105,7 +102,7 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
         Refresh result = Await.until(
             throwSupplier(() -> {
                 try {
-                    HttpResponse<Refreshes> response = this.request(
+                    HttpResponse<List<Refresh>> response = this.request(
                         runContext,
                         HttpRequest.create(
                             HttpMethod.GET,
@@ -115,13 +112,13 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
                                     "datasetId", runContext.render(this.datasetId)
                                 ))
                         ),
-                        Argument.of(Refreshes.class)
+                        Argument.listOf(Refresh.class)
                     );
 
                     Optional<Refresh> refresh = response
                         .getBody()
                         .stream()
-                        .flatMap(refreshes -> refreshes.getValue().stream())
+                        .flatMap(Collection::stream)
                         .filter(r -> r.getRequestId().equals(refreshId))
                         .findFirst();
 

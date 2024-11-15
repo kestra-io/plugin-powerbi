@@ -1,0 +1,28 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/v1.0/myorg/groups/group/datasets/dataset/refreshes"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json",
+      "x-ms-request-id": "1344a272-7893-4afa-a4b3-3fb87222fdac"
+    },
+    "jsonBody": {
+      "type": "Full",
+      "commitMode": "transactional",
+      "maxParallelism": 2,
+      "retryCount": 2,
+      "objects": [
+        {
+          "table": "DimCustomer",
+          "partition": "DimCustomer"
+        },
+        {
+          "table": "DimDate"
+        }
+      ]
+    }
+  }
+}
