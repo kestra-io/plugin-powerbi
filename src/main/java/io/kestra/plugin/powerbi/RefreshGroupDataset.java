@@ -119,7 +119,7 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
                         .getBody()
                         .stream()
                         .flatMap(Collection::stream)
-                        .filter(r -> r.getRequestId().equals(refreshId))
+                        .filter(r -> refreshId.equals(r.getRequestId()))
                         .findFirst();
 
                     if (refresh.isEmpty()) {
