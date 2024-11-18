@@ -83,7 +83,7 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
             Argument.of(Object.class)
         );
 
-        String refreshId = create.getHeaders().get("x-ms-request-id");
+        String refreshId = create.getHeaders().get("RequestId");
 
         if (refreshId == null) {
             throw new IllegalStateException("Invalid request, missing RequestId headers, " +

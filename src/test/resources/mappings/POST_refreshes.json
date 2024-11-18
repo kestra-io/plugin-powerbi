@@ -7,7 +7,7 @@
     "status": 200,
     "headers": {
       "Content-Type": "application/json",
-      "x-ms-request-id": "1344a272-7893-4afa-a4b3-3fb87222fdac"
+      "RequestId": "1344a272-7893-4afa-a4b3-3fb87222fdac"
     },
     "jsonBody": {
       "type": "Full",
