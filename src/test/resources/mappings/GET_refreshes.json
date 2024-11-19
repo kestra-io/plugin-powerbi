@@ -1,0 +1,42 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "/v1.0/myorg/groups/group/datasets/dataset/refreshes"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "@odata.context":"https://wabi-north-europe-d-primary-redirect.analysis.windows.net/v1.0/myorg/groups/mygroup/$metadata#refreshes",
+      "value":[
+        {
+          "requestId":"954e322b-29d4-7023-6421-dab1284343b6","id":937845027,"refreshType":"OnDemand","startTime":"2024-11-19T08:38:51.96Z","endTime":"2024-11-19T08:38:57.603Z","status":"Completed","refreshAttempts":[
+          {
+            "attemptId":1,"startTime":"2024-11-19T08:38:52.3365916Z","endTime":"2024-11-19T08:38:57.1346923Z","type":"Data"
+          },{
+            "attemptId":1,"startTime":"2024-11-19T08:38:57.3065722Z","endTime":"2024-11-19T08:38:57.3690837Z","type":"Query"
+          }
+        ]
+        },{
+          "requestId":"9b2a5aa3-6207-47f9-8520-ed61b24c8634","id":937844652,"refreshType":"ViaApi","startTime":"2024-11-19T08:37:51.133Z","endTime":"2024-11-19T08:37:58.28Z","status":"Completed","refreshAttempts":[
+            {
+              "attemptId":1,"startTime":"2024-11-19T08:37:51.4759519Z","endTime":"2024-11-19T08:37:57.8439564Z","type":"Data"
+            },{
+              "attemptId":1,"startTime":"2024-11-19T08:37:57.9845868Z","endTime":"2024-11-19T08:37:58.0470922Z","type":"Query"
+            }
+          ]
+        },{
+          "requestId":"82b151ee-ea64-4099-a5cd-dc61f5b9712e","id":937844604,"refreshType":"ViaApi","startTime":"2024-11-19T08:37:16.677Z","endTime":"2024-11-19T08:37:26.083Z","status":"Completed","refreshAttempts":[
+            {
+              "attemptId":1,"startTime":"2024-11-19T08:37:17.2067442Z","endTime":"2024-11-19T08:37:25.4727384Z","type":"Data"
+            },{
+              "attemptId":1,"startTime":"2024-11-19T08:37:25.6289968Z","endTime":"2024-11-19T08:37:25.8477596Z","type":"Query"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
