@@ -16,6 +16,7 @@ import io.kestra.core.runners.RunContext;
 import org.slf4j.Logger;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -153,6 +154,10 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
         return Output.builder()
             .requestId(refreshId)
             .status(result.getStatus())
+            .extendedStatus(result.getExtendedStatus())
+            .refreshType(result.getRefreshType())
+            .startTime(result.getStartTime())
+            .endTime(result.getEndTime())
             .build();
     }
 
@@ -165,9 +170,33 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
         private String requestId;
 
         @Schema(
-            title = "The request status.",
+            title = "The refresh status.",
             description = "Only populated if `wait` parameter is set to `true`."
         )
         private String status;
+
+        @Schema(
+                title = "The refresh extended status.",
+                description = "Only populated if `wait` parameter is set to `true`."
+        )
+        private String extendedStatus;
+
+        @Schema(
+                title = "The refresh type.",
+                description = "Only populated if `wait` parameter is set to `true`."
+        )
+        String refreshType;
+
+        @Schema(
+                title = "The refresh start time.",
+                description = "Only populated if `wait` parameter is set to `true`."
+        )
+        Instant startTime;
+
+        @Schema(
+                title = "The refresh end time.",
+                description = "Only populated if `wait` parameter is set to `true`."
+        )
+        Instant endTime;
     }
 }

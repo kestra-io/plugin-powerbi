@@ -1,5 +1,6 @@
 package io.kestra.plugin.powerbi;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.kestra.core.exceptions.IllegalVariableEvaluationException;
 import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.tasks.Task;
@@ -32,6 +33,12 @@ import jakarta.validation.constraints.NotNull;
 @Getter
 @NoArgsConstructor
 public abstract class AbstractPowerBi extends Task  {
+    @VisibleForTesting
+    static String LOGIN_URL = "https://login.microsoftonline.com";
+    @VisibleForTesting
+    static String API_URL = "https://api.powerbi.com/";
+
+
     @NotNull
     @NotEmpty
     @Schema(
@@ -93,7 +100,7 @@ public abstract class AbstractPowerBi extends Task  {
                 "&scope=https://analysis.windows.net/powerbi/api/.default"
             );
 
-        try (HttpClient client = this.client(runContext, "https://login.microsoftonline.com")) {
+        try (HttpClient client = this.client(runContext, LOGIN_URL)) {
             HttpResponse<Map<String, String>> exchange = client.toBlocking().exchange(request, Argument.mapOf(String.class, String.class));
 
             Map<String, String> token = exchange.body();
@@ -113,7 +120,7 @@ public abstract class AbstractPowerBi extends Task  {
                 .bearerAuth(this.token(runContext))
                 .contentType(MediaType.APPLICATION_JSON);
 
-            try (HttpClient client = this.client(runContext, "https://api.powerbi.com/")) {
+            try (HttpClient client = this.client(runContext, API_URL)) {
                 return client.toBlocking().exchange(request, argument);
             }
         } catch (HttpClientResponseException e) {
