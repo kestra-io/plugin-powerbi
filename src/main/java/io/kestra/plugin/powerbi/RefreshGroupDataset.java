@@ -1,5 +1,6 @@
 package io.kestra.plugin.powerbi;
 
+import io.kestra.core.models.property.Property;
 import io.kestra.core.utils.Await;
 import io.kestra.plugin.powerbi.models.Refresh;
 import io.kestra.plugin.powerbi.models.Refreshes;
@@ -38,37 +39,32 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
     @Schema(
         title = "The workspace ID."
     )
-    @PluginProperty(dynamic = true)
-    private String groupId;
+    private Property<String> groupId;
 
     @Schema(
         title = "The dataset ID."
     )
-    @PluginProperty(dynamic = true)
-    private String datasetId;
+    private Property<String> datasetId;
 
     @Schema(
         title = "Wait for refresh completion."
     )
-    @PluginProperty
     @Builder.Default
-    private Boolean wait = false;
+    private Property<Boolean> wait = Property.of(false);
 
     @Schema(
         title = "The duration to wait between the polls."
     )
     @NotNull
     @Builder.Default
-    @PluginProperty
-    private final Duration pollDuration = Duration.ofSeconds(5);
+    private final Property<Duration> pollDuration = Property.of(Duration.ofSeconds(5));
 
     @Schema(
         title = "The maximum duration to wait until the refresh completes."
     )
     @NotNull
     @Builder.Default
-    @PluginProperty
-    private final Duration waitDuration = Duration.ofMinutes(10);
+    private final Property<Duration> waitDuration = Property.of(Duration.ofMinutes(10));
 
     @Override
     public RefreshGroupDataset.Output run(RunContext runContext) throws Exception {
@@ -80,8 +76,8 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
                 HttpMethod.POST,
                 UriTemplate.of("/v1.0/myorg/groups/{groupId}/datasets/{datasetId}/refreshes")
                     .expand(Map.of(
-                        "groupId", runContext.render(this.groupId),
-                        "datasetId", runContext.render(this.datasetId)
+                        "groupId", runContext.render(this.groupId).as(String.class).orElseThrow(),
+                        "datasetId", runContext.render(this.datasetId).as(String.class).orElseThrow()
                     ))
             ),
             Argument.of(Object.class)
@@ -97,7 +93,7 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
 
         logger.info("Refresh created with id '{}'", refreshId);
 
-        if (!wait) {
+        if (!runContext.render(wait).as(Boolean.class).orElseThrow()) {
             return Output.builder()
                 .requestId(refreshId)
                 .build();
@@ -112,8 +108,8 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
                             HttpMethod.GET,
                             UriTemplate.of("/v1.0/myorg/groups/{groupId}/datasets/{datasetId}/refreshes")
                                 .expand(Map.of(
-                                    "groupId", runContext.render(this.groupId),
-                                    "datasetId", runContext.render(this.datasetId)
+                                    "groupId", runContext.render(this.groupId).as(String.class).orElse(null),
+                                    "datasetId", runContext.render(this.datasetId).as(String.class).orElse(null)
                                 ))
                         ),
                         Argument.of(Refreshes.class)
@@ -143,8 +139,8 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
                     throw new Exception(e);
                 }
             }),
-            this.pollDuration,
-            this.waitDuration
+            runContext.render(this.pollDuration).as(Duration.class).orElseThrow(),
+            runContext.render(this.waitDuration).as(Duration.class).orElseThrow()
         );
 
         if (!result.getStatus().toLowerCase(Locale.ROOT).equals("completed")) {
