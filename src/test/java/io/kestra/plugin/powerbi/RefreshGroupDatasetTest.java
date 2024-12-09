@@ -3,6 +3,7 @@ package io.kestra.plugin.powerbi;
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
 import io.kestra.core.junit.annotations.KestraTest;
+import io.kestra.core.models.property.Property;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.runners.RunContextFactory;
 import jakarta.inject.Inject;
@@ -29,9 +30,9 @@ class RefreshGroupDatasetTest {
                 .tenantId("tenant")
                 .clientId("client")
                 .clientSecret("secret")
-                .groupId("group")
-                .datasetId("dataset")
-                .wait(true)
+                .groupId(Property.of("group"))
+                .datasetId(Property.of("dataset"))
+                .wait(Property.of(true))
                 .build();
 
         var output = task.run(runContext);
