@@ -1,135 +1,118 @@
 package io.kestra.plugin.powerbi;
 
-import com.google.common.annotations.VisibleForTesting;
+import com.fasterxml.jackson.core.type.TypeReference;
 import io.kestra.core.exceptions.IllegalVariableEvaluationException;
+import io.kestra.core.http.client.HttpClientException;
+import io.kestra.core.http.client.configurations.HttpConfiguration;
 import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.tasks.Task;
-import io.kestra.core.runners.DefaultRunContext;
 import io.kestra.core.runners.RunContext;
-import io.micronaut.core.type.Argument;
-import io.micronaut.http.*;
-import io.micronaut.http.client.DefaultHttpClientConfiguration;
-import io.micronaut.http.client.HttpClient;
-import io.micronaut.http.client.exceptions.HttpClientResponseException;
-import io.micronaut.http.client.netty.DefaultHttpClient;
-import io.micronaut.http.client.netty.NettyHttpClientFactory;
-import io.micronaut.http.codec.MediaTypeCodecRegistry;
-import io.micronaut.http.uri.UriTemplate;
+import io.kestra.core.http.HttpRequest;
+import io.kestra.core.http.HttpResponse;
+import io.kestra.core.http.client.HttpClient;
+import io.kestra.core.http.client.HttpClientRequestException;
+import io.kestra.core.http.client.HttpClientResponseException;
+import io.kestra.core.serializers.JacksonMapper;
+import io.micronaut.http.MediaType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
-import java.net.MalformedURLException;
+import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.time.Duration;
 import java.util.Map;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-
 @SuperBuilder
 @ToString
 @EqualsAndHashCode
 @Getter
 @NoArgsConstructor
-public abstract class AbstractPowerBi extends Task  {
-    @VisibleForTesting
+public abstract class AbstractPowerBi extends Task {
     static String LOGIN_URL = "https://login.microsoftonline.com";
-    @VisibleForTesting
     static String API_URL = "https://api.powerbi.com/";
-
 
     @NotNull
     @NotEmpty
-    @Schema(
-        title = "Azure tenant ID."
-    )
+    @Schema(title = "Azure tenant ID.")
     @PluginProperty(dynamic = true)
     private String tenantId;
 
     @NotNull
     @NotEmpty
-    @Schema(
-        title = "Azure client ID."
-    )
+    @Schema(title = "Azure client ID.")
     @PluginProperty(dynamic = true)
     private String clientId;
 
     @NotNull
     @NotEmpty
-    @Schema(
-        title = "Azure client secret."
-    )
+    @Schema(title = "Azure client secret.")
     @PluginProperty(dynamic = true)
     private String clientSecret;
+
+    @Schema(
+        title = "The http client configuration"
+    )
+    protected HttpConfiguration options;
 
     @Getter(AccessLevel.NONE)
     private transient String token;
 
-    private static final Duration HTTP_READ_TIMEOUT = Duration.ofSeconds(60);
-    private static final NettyHttpClientFactory FACTORY = new NettyHttpClientFactory();
-
-    protected HttpClient client(RunContext runContext, String base) throws IllegalVariableEvaluationException, MalformedURLException, URISyntaxException {
-        MediaTypeCodecRegistry mediaTypeCodecRegistry = ((DefaultRunContext)runContext).getApplicationContext().getBean(MediaTypeCodecRegistry.class);
-
-        DefaultHttpClientConfiguration configuration = new DefaultHttpClientConfiguration();
-        configuration.setReadTimeout(HTTP_READ_TIMEOUT);
-
-        DefaultHttpClient client = (DefaultHttpClient) FACTORY.createClient(URI.create(base).toURL(), configuration);
-        client.setMediaTypeCodecRegistry(mediaTypeCodecRegistry);
-
-        return client;
-    }
-
-    private String token(RunContext runContext) throws IllegalVariableEvaluationException, MalformedURLException, URISyntaxException {
+    private String token(RunContext runContext) throws IllegalVariableEvaluationException {
         if (this.token != null) {
             return this.token;
         }
 
-        UriTemplate uriTemplate = UriTemplate.of("/{tenantId}/oauth2/token");
-        String uri = uriTemplate.expand(Map.of(
-            "tenantId", runContext.render(this.tenantId)
-        ));
+        URI uri = URI.create(LOGIN_URL + "/" + runContext.render(this.tenantId) + "/oauth2/token");
 
-        MutableHttpRequest<String> request = HttpRequest.create(HttpMethod.POST, uri)
-            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-            .body("grant_type=client_credentials" +
-                "&client_id=" + runContext.render(this.clientId)+
-                "&client_secret=" + runContext.render(this.clientSecret)+
-                "&resource=https://analysis.windows.net/powerbi/api" +
-                "&scope=https://analysis.windows.net/powerbi/api/.default"
-            );
+        HttpRequest request = HttpRequest.builder()
+            .uri(uri)
+            .method("POST")
+            .body(HttpRequest.UrlEncodedRequestBody.builder()
+                .content(Map.of(
+                    "grant_type", "client_credentials",
+                    "client_id", runContext.render(this.clientId),
+                    "client_secret", runContext.render(this.clientSecret),
+                    "resource", "https://analysis.windows.net/powerbi/api",
+                    "scope", "https://analysis.windows.net/powerbi/api/.default"
+                ))
+                .build())
+            .addHeader("Content-Type", "application/x-www-form-urlencoded")
+            .build();
 
-        try (HttpClient client = this.client(runContext, LOGIN_URL)) {
-            HttpResponse<Map<String, String>> exchange = client.toBlocking().exchange(request, Argument.mapOf(String.class, String.class));
+        try (HttpClient client = new HttpClient(runContext, options)) {
+            HttpResponse<String> exchange = client.request(request, String.class);
+            Map<String, String> tokenResp = JacksonMapper.ofJson().readValue(exchange.getBody(), new TypeReference<>() {});
 
-            Map<String, String> token = exchange.body();
-
-            if (token == null || !token.containsKey("access_token")) {
-                throw new IllegalStateException("Invalid token request with response " + token);
+            if (tokenResp == null || !tokenResp.containsKey("access_token")) {
+                throw new IllegalStateException("Invalid token request response: " + token);
             }
-            this.token = token.get("access_token");
-
+            this.token = tokenResp.get("access_token");
             return this.token;
+        } catch (HttpClientRequestException | HttpClientResponseException  e) {
+            throw new RuntimeException("Failed to fetch access token", e);
+        } catch (HttpClientException e) {
+            throw new RuntimeException("Cient failed",e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    protected <REQ, RES> HttpResponse<RES> request(RunContext runContext, MutableHttpRequest<REQ> request, Argument<RES> argument) throws HttpClientResponseException {
-        try {
-            request = request
-                .bearerAuth(this.token(runContext))
-                .contentType(MediaType.APPLICATION_JSON);
+    protected <REQ, RES> HttpResponse<RES> request(RunContext runContext, HttpRequest request, Class<RES> responseType) throws HttpClientException, IllegalVariableEvaluationException {
+            request = HttpRequest.builder()
+                .uri(request.getUri())
+                .method(request.getMethod())
+                .body(request.getBody())
+                .addHeader("Authorization", "Bearer " + this.token(runContext))
+                .addHeader("Content-Type", MediaType.APPLICATION_JSON)
+                .build();
 
-            try (HttpClient client = this.client(runContext, API_URL)) {
-                return client.toBlocking().exchange(request, argument);
+
+            try (HttpClient client = new HttpClient(runContext, options)) {
+                return client.request(request, responseType);
+            } catch (IOException | IllegalVariableEvaluationException e) {
+                throw new RuntimeException(e);
             }
-        } catch (HttpClientResponseException e) {
-            throw new HttpClientResponseException(
-                "Request failed '" + e.getStatus().getCode() + "' and body '" + e.getResponse().getBody(String.class).orElse("null") + "'",
-                e.getResponse()
-            );
-        } catch (IllegalVariableEvaluationException | MalformedURLException | URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
+
     }
 }

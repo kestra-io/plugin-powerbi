@@ -1,10 +1,9 @@
 package io.kestra.plugin.powerbi.models;
 
-import lombok.Value;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.util.List;
 
-@Value
-public class Refreshes {
-    List<Refresh> value;
+@JsonIgnoreProperties(ignoreUnknown = true)
+public record Refreshes(List<Refresh> value) {
 }

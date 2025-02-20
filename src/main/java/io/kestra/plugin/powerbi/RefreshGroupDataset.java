@@ -4,22 +4,21 @@ import io.kestra.core.models.property.Property;
 import io.kestra.core.utils.Await;
 import io.kestra.plugin.powerbi.models.Refresh;
 import io.kestra.plugin.powerbi.models.Refreshes;
-import io.micronaut.core.type.Argument;
-import io.micronaut.http.*;
-import io.micronaut.http.client.exceptions.HttpClientResponseException;
-import io.micronaut.http.uri.UriTemplate;
+import io.kestra.core.http.HttpRequest;
+import io.kestra.core.http.HttpResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
-import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
 import org.slf4j.Logger;
 
+
+import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 
 import jakarta.validation.constraints.NotNull;
@@ -70,94 +69,78 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
     public RefreshGroupDataset.Output run(RunContext runContext) throws Exception {
         Logger logger = runContext.logger();
 
-        HttpResponse<Object> create = this.request(
-            runContext,
-            HttpRequest.create(
-                HttpMethod.POST,
-                UriTemplate.of("/v1.0/myorg/groups/{groupId}/datasets/{datasetId}/refreshes")
-                    .expand(Map.of(
-                        "groupId", runContext.render(this.groupId).as(String.class).orElseThrow(),
-                        "datasetId", runContext.render(this.datasetId).as(String.class).orElseThrow()
-                    ))
-            ),
-            Argument.of(Object.class)
-        );
-
-        String refreshId = create.getHeaders().get("RequestId");
-
-        if (refreshId == null) {
-            throw new IllegalStateException("Invalid request, missing RequestId headers, " +
-                "body '" + create.getBody().orElse(null) + "', header '" + create.getHeaders() + "'"
-            );
-        }
-
-        logger.info("Refresh created with id '{}'", refreshId);
-
-        if (!runContext.render(wait).as(Boolean.class).orElseThrow()) {
-            return Output.builder()
-                .requestId(refreshId)
-                .build();
-        }
-
-        Refresh result = Await.until(
-            throwSupplier(() -> {
-                try {
-                    HttpResponse<Refreshes> response = this.request(
-                        runContext,
-                        HttpRequest.create(
-                            HttpMethod.GET,
-                            UriTemplate.of("/v1.0/myorg/groups/{groupId}/datasets/{datasetId}/refreshes")
-                                .expand(Map.of(
-                                    "groupId", runContext.render(this.groupId).as(String.class).orElse(null),
-                                    "datasetId", runContext.render(this.datasetId).as(String.class).orElse(null)
-                                ))
-                        ),
-                        Argument.of(Refreshes.class)
-                    );
-
-                    Optional<Refresh> refresh = response
-                        .getBody()
-                        .stream()
-                        .flatMap(refreshes -> refreshes.getValue().stream())
-                        .filter(r -> r.getRequestId().equals(refreshId))
-                        .findFirst();
-
-                    if (refresh.isEmpty()) {
-                        throw new IllegalStateException("Unable to find refresh '" + refreshId + "'");
-                    }
-
-                    if (logger.isTraceEnabled()) {
-                        logger.trace("Refresh: {}", refresh.get());
-                    }
-
-                    if (refresh.get().getStatus().equals("Unknown")) {
-                        return null;
-                    }
-
-                    return refresh.get();
-                } catch (HttpClientResponseException e) {
-                    throw new Exception(e);
-                }
-            }),
-            runContext.render(this.pollDuration).as(Duration.class).orElseThrow(),
-            runContext.render(this.waitDuration).as(Duration.class).orElseThrow()
-        );
-
-        if (!result.getStatus().toLowerCase(Locale.ROOT).equals("completed")) {
-            throw new Exception("Refresh failed with status '" + result.getStatus() + "' with response " + result);
-        }
-
-        return Output.builder()
-            .requestId(refreshId)
-            .status(result.getStatus())
-            .extendedStatus(result.getExtendedStatus())
-            .refreshType(result.getRefreshType())
-            .startTime(result.getStartTime())
-            .endTime(result.getEndTime())
+        HttpRequest request = HttpRequest.builder()
+            .uri(URI.create(API_URL + "/v1.0/myorg/groups/" + runContext.render(this.groupId).as(String.class).orElseThrow() + "/datasets/" + runContext.render(this.datasetId).as(String.class).orElseThrow() + "/refreshes"))
+            .method("POST")
             .build();
+
+            HttpResponse<String> response = this.request(runContext, request, String.class);
+
+            Optional<String> refreshId = response.getHeaders().firstValue("requestId");
+
+            if (refreshId.isEmpty()) {
+                throw new IllegalStateException("Invalid request, missing RequestId headers, " +
+                    "body '" + response.getBody() + "', header '" + response.getHeaders() + "'");
+            }
+
+            logger.info("Refresh created with id '{}'", refreshId.get());
+
+            if (!runContext.render(wait).as(Boolean.class).orElseThrow()) {
+                return Output.builder()
+                    .requestId(refreshId.get())
+                    .build();
+            }
+
+            Refresh result = Await.until(
+                throwSupplier(() -> {
+                    HttpRequest getRequest = HttpRequest.builder()
+                        .uri(URI.create(API_URL + "/v1.0/myorg/groups/" + runContext.render(this.groupId).as(String.class).orElse(null) + "/datasets/" + runContext.render(this.datasetId).as(String.class).orElse(null) + "/refreshes"))
+                        .method("GET")
+                        .build();
+
+                        HttpResponse<Refreshes> refreshResponse = this.request(runContext, getRequest, Refreshes.class);
+                        Optional<Refresh> refresh = Optional.ofNullable(refreshResponse.getBody())
+                            .map(Refreshes::value)
+                            .stream()
+                            .flatMap(List::stream)
+                            .filter(r -> r.requestId().equals(refreshId.get()))
+                            .findFirst();
+
+                        if (refresh.isEmpty()) {
+                            throw new IllegalStateException("Unable to find refresh '" + refreshId.get() + "'");
+                        }
+
+                        if (logger.isTraceEnabled()) {
+                            logger.trace("Refresh: {}", refresh.get());
+                        }
+
+                        if (refresh.get().status().equals("Unknown")) {
+                            return null;
+                        }
+
+                        return refresh.get();
+
+                }),
+                runContext.render(this.pollDuration).as(Duration.class).orElseThrow(),
+                runContext.render(this.waitDuration).as(Duration.class).orElseThrow()
+            );
+
+            if (!result.status().toLowerCase(Locale.ROOT).equals("completed")) {
+                throw new Exception("Refresh failed with status '" + result.status() + "' with response " + result);
+            }
+
+            return Output.builder()
+                .requestId(refreshId.get())
+                .status(result.status())
+                .extendedStatus(result.extendedStatus())
+                .refreshType(result.refreshType())
+                .startTime(result.startTime())
+                .endTime(result.endTime())
+                .build();
+
     }
 
-    @Builder
+@Builder
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         @Schema(
