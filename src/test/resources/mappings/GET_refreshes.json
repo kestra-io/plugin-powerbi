@@ -1,7 +1,7 @@
 {
   "request": {
     "method": "GET",
-    "url": "/v1.0/myorg/groups/group/datasets/dataset/refreshes"
+    "url": "/api/v1.0/myorg/groups/group/datasets/dataset/refreshes"
   },
   "response": {
     "status": 200,
