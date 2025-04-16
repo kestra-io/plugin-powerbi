@@ -31,8 +31,8 @@ import static io.kestra.core.utils.Rethrow.throwSupplier;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Triggers a refresh for the specified dataset from the specified workspace.",
-    description = "An [asynchronous refresh](https://docs.microsoft.com/en-us/power-bi/connect-data/asynchronous-refresh) would be triggered."
+    title = "Triggers a refresh for the specified PowerBI dataset from the specified workspace.",
+    description = "An [asynchronous refresh](https://docs.microsoft.com/en-us/power-bi/connect-data/asynchronous-refresh) will be triggered."
 )
 public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask<RefreshGroupDataset.Output> {
     @Schema(
