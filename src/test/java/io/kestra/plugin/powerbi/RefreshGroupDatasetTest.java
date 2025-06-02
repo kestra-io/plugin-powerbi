@@ -30,9 +30,9 @@ class RefreshGroupDatasetTest {
                 .tenantId("tenant")
                 .clientId("client")
                 .clientSecret("secret")
-                .groupId(Property.of("group"))
-                .datasetId(Property.of("dataset"))
-                .wait(Property.of(true))
+                .groupId(Property.ofValue("group"))
+                .datasetId(Property.ofValue("dataset"))
+                .wait(Property.ofValue(true))
                 .build();
 
         var output = task.run(runContext);

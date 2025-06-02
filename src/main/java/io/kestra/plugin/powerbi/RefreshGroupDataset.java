@@ -49,21 +49,21 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
         title = "Wait for refresh completion."
     )
     @Builder.Default
-    private Property<Boolean> wait = Property.of(false);
+    private Property<Boolean> wait = Property.ofValue(false);
 
     @Schema(
         title = "The duration to wait between the polls."
     )
     @NotNull
     @Builder.Default
-    private final Property<Duration> pollDuration = Property.of(Duration.ofSeconds(5));
+    private final Property<Duration> pollDuration = Property.ofValue(Duration.ofSeconds(5));
 
     @Schema(
         title = "The maximum duration to wait until the refresh completes."
     )
     @NotNull
     @Builder.Default
-    private final Property<Duration> waitDuration = Property.of(Duration.ofMinutes(10));
+    private final Property<Duration> waitDuration = Property.ofValue(Duration.ofMinutes(10));
 
     @Override
     public RefreshGroupDataset.Output run(RunContext runContext) throws Exception {
