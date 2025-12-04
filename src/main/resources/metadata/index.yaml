@@ -1,0 +1,8 @@
+group: io.kestra.plugin.powerbi
+name: "powerbi"
+title: "Power BI"
+description: "Tasks to interact with Microsoft Power BI."
+body: ""
+videos: []
+createdBy: "Kestra Core Team"
+managedBy: "Kestra Core Team"
