@@ -1,8 +1,8 @@
 group: io.kestra.plugin.powerbi
 name: "powerbi"
 title: "Power BI"
-description: "Tasks to interact with Microsoft Power BI."
-body: ""
+description: "Tasks that refresh Microsoft Power BI datasets via the API."
+body: "Provide Azure tenant/client credentials and specify the Power BI group and dataset IDs to trigger refreshes and list refresh history, returning API responses for reporting pipelines."
 videos: []
 createdBy: "Kestra Core Team"
 managedBy: "Kestra Core Team"
