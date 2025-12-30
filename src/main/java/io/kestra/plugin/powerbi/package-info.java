@@ -1,6 +1,9 @@
 @PluginSubGroup(
     description = "This sub-group of plugins contains tasks for using Microsoft Power BI.",
-    categories = PluginSubGroup.PluginCategory.BI
+    categories = PluginSubGroup.PluginCategory.BI,
+    categories = {
+        PluginSubGroup.PluginCategory.DATA
+    }
 )
 package io.kestra.plugin.powerbi;
 
