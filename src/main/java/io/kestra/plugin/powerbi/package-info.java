@@ -1,7 +1,5 @@
 @PluginSubGroup(
-    description = "This sub-group of plugins contains tasks for using Microsoft Power BI.",
-    categories = PluginSubGroup.PluginCategory.BI,
-    categories = {
+    description = "This sub-group of plugins contains tasks for using Microsoft Power BI.",categories = {
         PluginSubGroup.PluginCategory.DATA
     }
 )
