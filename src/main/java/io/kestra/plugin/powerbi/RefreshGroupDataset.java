@@ -1,5 +1,7 @@
 package io.kestra.plugin.powerbi;
 
+import io.kestra.core.models.annotations.Example;
+import io.kestra.core.models.annotations.Plugin;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.utils.Await;
 import io.kestra.plugin.powerbi.models.Refresh;
@@ -31,35 +33,64 @@ import static io.kestra.core.utils.Rethrow.throwSupplier;
 @Getter
 @NoArgsConstructor
 @Schema(
-    title = "Triggers a refresh for the specified PowerBI dataset from the specified workspace.",
-    description = "An [asynchronous refresh](https://docs.microsoft.com/en-us/power-bi/connect-data/asynchronous-refresh) will be triggered."
+    title = "Refresh a Power BI dataset",
+    description = "Starts an asynchronous refresh for a dataset in a workspace. Optionally waits for completion, polling every 5 seconds by default until completion or a 10-minute timeout. Requires a service principal with refresh permissions on the target workspace and dataset."
+)
+@Plugin(
+    examples = {
+        @Example(
+            full = true,
+            title = "Refresh a workspace dataset",
+            code = """
+                id: refresh-powerbi-dataset
+                namespace: company.team
+
+                tasks:
+                  - id: refresh_sales_model
+                    type: io.kestra.plugin.powerbi.RefreshGroupDataset
+                    tenantId: "{{ secret('AZURE_TENANT_ID') }}"
+                    clientId: "{{ secret('AZURE_CLIENT_ID') }}"
+                    clientSecret: "{{ secret('AZURE_CLIENT_SECRET') }}"
+                    groupId: "9f1c2b8c-12ab-4f3e-9bcd-0af2c5e6d123"
+                    datasetId: "5c8b4a1e-7f89-4c33-9dd8-1f23c4567890"
+                    wait: true
+                    pollDuration: "PT5S"
+                    waitDuration: "PT10M"
+                """
+        )
+    }
 )
 public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask<RefreshGroupDataset.Output> {
     @Schema(
-        title = "The workspace ID."
+        title = "Workspace (group) ID",
+        description = "GUID of the workspace containing the dataset."
     )
     private Property<String> groupId;
 
     @Schema(
-        title = "The dataset ID."
+        title = "Dataset ID",
+        description = "GUID of the dataset to refresh."
     )
     private Property<String> datasetId;
 
     @Schema(
-        title = "Wait for refresh completion."
+        title = "Wait for refresh completion",
+        description = "Defaults to `false`. When `true`, polls the refresh status and fails if the final status is not `Completed`."
     )
     @Builder.Default
     private Property<Boolean> wait = Property.ofValue(false);
 
     @Schema(
-        title = "The duration to wait between the polls."
+        title = "Polling interval",
+        description = "Delay between status checks when `wait` is true; defaults to 5 seconds."
     )
     @NotNull
     @Builder.Default
     private final Property<Duration> pollDuration = Property.ofValue(Duration.ofSeconds(5));
 
     @Schema(
-        title = "The maximum duration to wait until the refresh completes."
+        title = "Refresh wait timeout",
+        description = "Maximum time to wait for completion when `wait` is true; defaults to 10 minutes."
     )
     @NotNull
     @Builder.Default
@@ -144,37 +175,38 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         @Schema(
-            title = "The request ID."
+            title = "Refresh request ID",
+            description = "Always returned, even when `wait` is `false`."
         )
         private String requestId;
 
         @Schema(
-            title = "The refresh status.",
-            description = "Only populated if `wait` parameter is set to `true`."
+            title = "Refresh status",
+            description = "Returned only when `wait` is `true`; task fails if the final status is not `Completed`."
         )
         private String status;
 
         @Schema(
-                title = "The refresh extended status.",
-                description = "Only populated if `wait` parameter is set to `true`."
+                title = "Refresh extended status",
+                description = "Returned only when `wait` is `true`."
         )
         private String extendedStatus;
 
         @Schema(
-                title = "The refresh type.",
-                description = "Only populated if `wait` parameter is set to `true`."
+                title = "Refresh type",
+                description = "Returned only when `wait` is `true`."
         )
         String refreshType;
 
         @Schema(
-                title = "The refresh start time.",
-                description = "Only populated if `wait` parameter is set to `true`."
+                title = "Refresh start time",
+                description = "Returned only when `wait` is `true`."
         )
         Instant startTime;
 
         @Schema(
-                title = "The refresh end time.",
-                description = "Only populated if `wait` parameter is set to `true`."
+                title = "Refresh end time",
+                description = "Returned only when `wait` is `true`."
         )
         Instant endTime;
     }
