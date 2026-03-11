@@ -1,21 +1,5 @@
 package io.kestra.plugin.powerbi;
 
-import io.kestra.core.models.annotations.Example;
-import io.kestra.core.models.annotations.Plugin;
-import io.kestra.core.models.property.Property;
-import io.kestra.core.utils.Await;
-import io.kestra.plugin.powerbi.models.Refresh;
-import io.kestra.plugin.powerbi.models.Refreshes;
-import io.kestra.core.http.HttpRequest;
-import io.kestra.core.http.HttpResponse;
-import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.*;
-import lombok.experimental.SuperBuilder;
-import io.kestra.core.models.tasks.RunnableTask;
-import io.kestra.core.runners.RunContext;
-import org.slf4j.Logger;
-
-
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
@@ -23,7 +7,23 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+
+import io.kestra.core.http.HttpRequest;
+import io.kestra.core.http.HttpResponse;
+import io.kestra.core.models.annotations.Example;
+import io.kestra.core.models.annotations.Plugin;
+import io.kestra.core.models.property.Property;
+import io.kestra.core.models.tasks.RunnableTask;
+import io.kestra.core.runners.RunContext;
+import io.kestra.core.utils.Await;
+import io.kestra.plugin.powerbi.models.Refresh;
+import io.kestra.plugin.powerbi.models.Refreshes;
+
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import static io.kestra.core.utils.Rethrow.throwSupplier;
 
@@ -101,77 +101,90 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
         Logger logger = runContext.logger();
 
         HttpRequest request = HttpRequest.builder()
-            .uri(URI.create(API_URL + "/v1.0/myorg/groups/" + runContext.render(this.groupId).as(String.class).orElseThrow() + "/datasets/" + runContext.render(this.datasetId).as(String.class).orElseThrow() + "/refreshes"))
+            .uri(
+                URI.create(
+                    API_URL + "/v1.0/myorg/groups/" + runContext.render(this.groupId).as(String.class).orElseThrow() + "/datasets/"
+                        + runContext.render(this.datasetId).as(String.class).orElseThrow() + "/refreshes"
+                )
+            )
             .method("POST")
             .build();
 
-            HttpResponse<String> response = this.request(runContext, request, String.class);
+        HttpResponse<String> response = this.request(runContext, request, String.class);
 
-            Optional<String> refreshId = response.getHeaders().firstValue("requestId");
+        Optional<String> refreshId = response.getHeaders().firstValue("requestId");
 
-            if (refreshId.isEmpty()) {
-                throw new IllegalStateException("Invalid request, missing RequestId headers, " +
-                    "body '" + response.getBody() + "', header '" + response.getHeaders() + "'");
-            }
-
-            logger.info("Refresh created with id '{}'", refreshId.get());
-
-            if (!runContext.render(wait).as(Boolean.class).orElseThrow()) {
-                return Output.builder()
-                    .requestId(refreshId.get())
-                    .build();
-            }
-
-            Refresh result = Await.until(
-                throwSupplier(() -> {
-                    HttpRequest getRequest = HttpRequest.builder()
-                        .uri(URI.create(API_URL + "/v1.0/myorg/groups/" + runContext.render(this.groupId).as(String.class).orElse(null) + "/datasets/" + runContext.render(this.datasetId).as(String.class).orElse(null) + "/refreshes"))
-                        .method("GET")
-                        .build();
-
-                        HttpResponse<Refreshes> refreshResponse = this.request(runContext, getRequest, Refreshes.class);
-                        Optional<Refresh> refresh = Optional.ofNullable(refreshResponse.getBody())
-                            .map(Refreshes::value)
-                            .stream()
-                            .flatMap(List::stream)
-                            .filter(r -> r.requestId().equals(refreshId.get()))
-                            .findFirst();
-
-                        if (refresh.isEmpty()) {
-                            throw new IllegalStateException("Unable to find refresh '" + refreshId.get() + "'");
-                        }
-
-                        if (logger.isTraceEnabled()) {
-                            logger.trace("Refresh: {}", refresh.get());
-                        }
-
-                        if (refresh.get().status().equals("Unknown")) {
-                            return null;
-                        }
-
-                        return refresh.get();
-
-                }),
-                runContext.render(this.pollDuration).as(Duration.class).orElseThrow(),
-                runContext.render(this.waitDuration).as(Duration.class).orElseThrow()
+        if (refreshId.isEmpty()) {
+            throw new IllegalStateException(
+                "Invalid request, missing RequestId headers, " +
+                    "body '" + response.getBody() + "', header '" + response.getHeaders() + "'"
             );
+        }
 
-            if (!result.status().toLowerCase(Locale.ROOT).equals("completed")) {
-                throw new Exception("Refresh failed with status '" + result.status() + "' with response " + result);
-            }
+        logger.info("Refresh created with id '{}'", refreshId.get());
 
+        if (!runContext.render(wait).as(Boolean.class).orElseThrow()) {
             return Output.builder()
                 .requestId(refreshId.get())
-                .status(result.status())
-                .extendedStatus(result.extendedStatus())
-                .refreshType(result.refreshType())
-                .startTime(result.startTime())
-                .endTime(result.endTime())
                 .build();
+        }
+
+        Refresh result = Await.until(
+            throwSupplier(() ->
+            {
+                HttpRequest getRequest = HttpRequest.builder()
+                    .uri(
+                        URI.create(
+                            API_URL + "/v1.0/myorg/groups/" + runContext.render(this.groupId).as(String.class).orElse(null) + "/datasets/"
+                                + runContext.render(this.datasetId).as(String.class).orElse(null) + "/refreshes"
+                        )
+                    )
+                    .method("GET")
+                    .build();
+
+                HttpResponse<Refreshes> refreshResponse = this.request(runContext, getRequest, Refreshes.class);
+                Optional<Refresh> refresh = Optional.ofNullable(refreshResponse.getBody())
+                    .map(Refreshes::value)
+                    .stream()
+                    .flatMap(List::stream)
+                    .filter(r -> r.requestId().equals(refreshId.get()))
+                    .findFirst();
+
+                if (refresh.isEmpty()) {
+                    throw new IllegalStateException("Unable to find refresh '" + refreshId.get() + "'");
+                }
+
+                if (logger.isTraceEnabled()) {
+                    logger.trace("Refresh: {}", refresh.get());
+                }
+
+                if (refresh.get().status().equals("Unknown")) {
+                    return null;
+                }
+
+                return refresh.get();
+
+            }),
+            runContext.render(this.pollDuration).as(Duration.class).orElseThrow(),
+            runContext.render(this.waitDuration).as(Duration.class).orElseThrow()
+        );
+
+        if (!result.status().toLowerCase(Locale.ROOT).equals("completed")) {
+            throw new Exception("Refresh failed with status '" + result.status() + "' with response " + result);
+        }
+
+        return Output.builder()
+            .requestId(refreshId.get())
+            .status(result.status())
+            .extendedStatus(result.extendedStatus())
+            .refreshType(result.refreshType())
+            .startTime(result.startTime())
+            .endTime(result.endTime())
+            .build();
 
     }
 
-@Builder
+    @Builder
     @Getter
     public static class Output implements io.kestra.core.models.tasks.Output {
         @Schema(
@@ -187,26 +200,26 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
         private String status;
 
         @Schema(
-                title = "Refresh extended status",
-                description = "Returned only when `wait` is `true`."
+            title = "Refresh extended status",
+            description = "Returned only when `wait` is `true`."
         )
         private String extendedStatus;
 
         @Schema(
-                title = "Refresh type",
-                description = "Returned only when `wait` is `true`."
+            title = "Refresh type",
+            description = "Returned only when `wait` is `true`."
         )
         String refreshType;
 
         @Schema(
-                title = "Refresh start time",
-                description = "Returned only when `wait` is `true`."
+            title = "Refresh start time",
+            description = "Returned only when `wait` is `true`."
         )
         Instant startTime;
 
         @Schema(
-                title = "Refresh end time",
-                description = "Returned only when `wait` is `true`."
+            title = "Refresh end time",
+            description = "Returned only when `wait` is `true`."
         )
         Instant endTime;
     }

@@ -1,28 +1,31 @@
 package io.kestra.plugin.powerbi;
 
+import java.io.IOException;
+import java.net.URI;
+import java.util.Map;
+
 import com.fasterxml.jackson.core.type.TypeReference;
+
 import io.kestra.core.exceptions.IllegalVariableEvaluationException;
+import io.kestra.core.http.HttpRequest;
+import io.kestra.core.http.HttpResponse;
+import io.kestra.core.http.client.HttpClient;
 import io.kestra.core.http.client.HttpClientException;
+import io.kestra.core.http.client.HttpClientRequestException;
+import io.kestra.core.http.client.HttpClientResponseException;
 import io.kestra.core.http.client.configurations.HttpConfiguration;
 import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.tasks.Task;
 import io.kestra.core.runners.RunContext;
-import io.kestra.core.http.HttpRequest;
-import io.kestra.core.http.HttpResponse;
-import io.kestra.core.http.client.HttpClient;
-import io.kestra.core.http.client.HttpClientRequestException;
-import io.kestra.core.http.client.HttpClientResponseException;
 import io.kestra.core.serializers.JacksonMapper;
+
 import io.micronaut.http.MediaType;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 
-import java.io.IOException;
-import java.net.URI;
-import java.util.Map;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
 @SuperBuilder
 @ToString
 @EqualsAndHashCode
@@ -68,51 +71,55 @@ public abstract class AbstractPowerBi extends Task {
         HttpRequest request = HttpRequest.builder()
             .uri(uri)
             .method("POST")
-            .body(HttpRequest.UrlEncodedRequestBody.builder()
-                .content(Map.of(
-                    "grant_type", "client_credentials",
-                    "client_id", runContext.render(this.clientId),
-                    "client_secret", runContext.render(this.clientSecret),
-                    "resource", "https://analysis.windows.net/powerbi/api",
-                    "scope", "https://analysis.windows.net/powerbi/api/.default"
-                ))
-                .build())
+            .body(
+                HttpRequest.UrlEncodedRequestBody.builder()
+                    .content(
+                        Map.of(
+                            "grant_type", "client_credentials",
+                            "client_id", runContext.render(this.clientId),
+                            "client_secret", runContext.render(this.clientSecret),
+                            "resource", "https://analysis.windows.net/powerbi/api",
+                            "scope", "https://analysis.windows.net/powerbi/api/.default"
+                        )
+                    )
+                    .build()
+            )
             .addHeader("Content-Type", "application/x-www-form-urlencoded")
             .build();
 
         try (HttpClient client = new HttpClient(runContext, options)) {
             HttpResponse<String> exchange = client.request(request, String.class);
-            Map<String, String> tokenResp = JacksonMapper.ofJson().readValue(exchange.getBody(), new TypeReference<>() {});
+            Map<String, String> tokenResp = JacksonMapper.ofJson().readValue(exchange.getBody(), new TypeReference<>() {
+            });
 
             if (tokenResp == null || !tokenResp.containsKey("access_token")) {
                 throw new IllegalStateException("Invalid token request response: " + token);
             }
             this.token = tokenResp.get("access_token");
             return this.token;
-        } catch (HttpClientRequestException | HttpClientResponseException  e) {
+        } catch (HttpClientRequestException | HttpClientResponseException e) {
             throw new RuntimeException("Failed to fetch access token", e);
         } catch (HttpClientException e) {
-            throw new RuntimeException("Cient failed",e);
+            throw new RuntimeException("Cient failed", e);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     protected <REQ, RES> HttpResponse<RES> request(RunContext runContext, HttpRequest request, Class<RES> responseType) throws HttpClientException, IllegalVariableEvaluationException {
-            request = HttpRequest.builder()
-                .uri(request.getUri())
-                .method(request.getMethod())
-                .body(request.getBody())
-                .addHeader("Authorization", "Bearer " + this.token(runContext))
-                .addHeader("Content-Type", MediaType.APPLICATION_JSON)
-                .build();
+        request = HttpRequest.builder()
+            .uri(request.getUri())
+            .method(request.getMethod())
+            .body(request.getBody())
+            .addHeader("Authorization", "Bearer " + this.token(runContext))
+            .addHeader("Content-Type", MediaType.APPLICATION_JSON)
+            .build();
 
-
-            try (HttpClient client = new HttpClient(runContext, options)) {
-                return client.request(request, responseType);
-            } catch (IOException | IllegalVariableEvaluationException e) {
-                throw new RuntimeException(e);
-            }
+        try (HttpClient client = new HttpClient(runContext, options)) {
+            return client.request(request, responseType);
+        } catch (IOException | IllegalVariableEvaluationException e) {
+            throw new RuntimeException(e);
+        }
 
     }
 }

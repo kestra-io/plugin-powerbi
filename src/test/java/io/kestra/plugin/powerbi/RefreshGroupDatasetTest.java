@@ -1,17 +1,20 @@
 package io.kestra.plugin.powerbi;
 
+import org.junit.jupiter.api.Test;
+
 import com.github.tomakehurst.wiremock.junit5.WireMockRuntimeInfo;
 import com.github.tomakehurst.wiremock.junit5.WireMockTest;
+
 import io.kestra.core.junit.annotations.KestraTest;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.runners.RunContext;
 import io.kestra.core.runners.RunContextFactory;
+
 import jakarta.inject.Inject;
-import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
 @KestraTest
 @WireMockTest
@@ -27,13 +30,13 @@ class RefreshGroupDatasetTest {
 
         RunContext runContext = runContextFactory.of();
         var task = RefreshGroupDataset.builder()
-                .tenantId("tenant")
-                .clientId("client")
-                .clientSecret("secret")
-                .groupId(Property.ofValue("group"))
-                .datasetId(Property.ofValue("dataset"))
-                .wait(Property.ofValue(true))
-                .build();
+            .tenantId("tenant")
+            .clientId("client")
+            .clientSecret("secret")
+            .groupId(Property.ofValue("group"))
+            .datasetId(Property.ofValue("dataset"))
+            .wait(Property.ofValue(true))
+            .build();
 
         var output = task.run(runContext);
         assertThat(output, notNullValue());
