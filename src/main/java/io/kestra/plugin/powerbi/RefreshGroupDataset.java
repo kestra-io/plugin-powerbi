@@ -26,6 +26,7 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import static io.kestra.core.utils.Rethrow.throwSupplier;
+import io.kestra.core.models.annotations.PluginProperty;
 
 @SuperBuilder
 @ToString
@@ -65,12 +66,14 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
         title = "Workspace (group) ID",
         description = "GUID of the workspace containing the dataset."
     )
+    @PluginProperty(group = "advanced")
     private Property<String> groupId;
 
     @Schema(
         title = "Dataset ID",
         description = "GUID of the dataset to refresh."
     )
+    @PluginProperty(group = "source")
     private Property<String> datasetId;
 
     @Schema(
@@ -78,6 +81,7 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
         description = "Defaults to `false`. When `true`, polls the refresh status and fails if the final status is not `Completed`."
     )
     @Builder.Default
+    @PluginProperty(group = "execution")
     private Property<Boolean> wait = Property.ofValue(false);
 
     @Schema(
@@ -86,6 +90,7 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
     )
     @NotNull
     @Builder.Default
+    @PluginProperty(group = "execution")
     private final Property<Duration> pollDuration = Property.ofValue(Duration.ofSeconds(5));
 
     @Schema(
@@ -94,6 +99,7 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
     )
     @NotNull
     @Builder.Default
+    @PluginProperty(group = "execution")
     private final Property<Duration> waitDuration = Property.ofValue(Duration.ofMinutes(10));
 
     @Override

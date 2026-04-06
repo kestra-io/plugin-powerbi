@@ -38,24 +38,25 @@ public abstract class AbstractPowerBi extends Task {
     @NotNull
     @NotEmpty
     @Schema(title = "Azure tenant ID.")
-    @PluginProperty(dynamic = true)
+    @PluginProperty(dynamic = true, group = "main")
     private String tenantId;
 
     @NotNull
     @NotEmpty
     @Schema(title = "Azure client ID.")
-    @PluginProperty(dynamic = true)
+    @PluginProperty(dynamic = true, group = "main")
     private String clientId;
 
     @NotNull
     @NotEmpty
     @Schema(title = "Azure client secret.")
-    @PluginProperty(dynamic = true)
+    @PluginProperty(dynamic = true, group = "main")
     private String clientSecret;
 
     @Schema(
         title = "The http client configuration"
     )
+    @PluginProperty(group = "advanced")
     protected HttpConfiguration options;
 
     @Getter(AccessLevel.NONE)
