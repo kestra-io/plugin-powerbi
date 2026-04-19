@@ -7,8 +7,9 @@
 
 ## Why
 
-- This plugin integrates Kestra with Power BI.
-- It provides tasks that refresh Microsoft Power BI datasets via the API.
+- What user problem does this solve? Teams need to refresh Microsoft Power BI datasets from orchestrated workflows instead of relying on manual console work, ad hoc scripts, or disconnected schedulers.
+- Why would a team adopt this plugin in a workflow? It keeps Power BI steps in the same Kestra flow as upstream preparation, approvals, retries, notifications, and downstream systems.
+- What operational/business outcome does it enable? It reduces manual handoffs and fragmented tooling while improving reliability, traceability, and delivery speed for processes that depend on Power BI.
 
 ## How
 
