@@ -50,7 +50,7 @@ public abstract class AbstractPowerBi extends Task {
     @NotNull
     @NotEmpty
     @Schema(title = "Azure client secret.")
-    @PluginProperty(dynamic = true, group = "main")
+    @PluginProperty(dynamic = true, group = "main", secret = true)
     private String clientSecret;
 
     @Schema(
