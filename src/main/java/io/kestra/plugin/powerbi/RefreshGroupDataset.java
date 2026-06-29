@@ -157,7 +157,8 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
                     .findFirst();
 
                 if (refresh.isEmpty()) {
-                    throw new IllegalStateException("Unable to find refresh '" + refreshId.get() + "'");
+                    logger.debug("Refresh '{}' not yet present in history, waiting...", refreshId.get());
+                    return null;
                 }
 
                 if (logger.isTraceEnabled()) {
