@@ -51,6 +51,7 @@ public abstract class AbstractPowerBi extends Task {
     @NotEmpty
     @Schema(title = "Azure client secret")
     @PluginProperty(dynamic = true, group = "main", secret = true)
+    @ToString.Exclude
     private String clientSecret;
 
     @Schema(
