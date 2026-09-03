@@ -4,7 +4,7 @@ Trigger Power BI dataset refreshes from Kestra flows.
 
 ## Authentication
 
-Set `tenantId`, `clientId`, and `clientSecret` (all required) to authenticate via Azure AD service principal using the OAuth 2.0 client credentials flow. Store secrets in [secrets](https://kestra.io/docs/concepts/secret) and apply connection properties globally with [plugin defaults](https://kestra.io/docs/workflow-components/plugin-defaults).
+Set `tenantId`, `clientId`, and `clientSecret` (all required) to authenticate via Azure AD service principal using the OAuth 2.0 client credentials flow. Store secrets in [secrets](https://kestra.io/docs/concepts/secret) and set connection properties on each task.
 
 ## Tasks
 
