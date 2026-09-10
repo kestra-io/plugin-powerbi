@@ -56,6 +56,9 @@ dependencies {
     compileOnly group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-guava'
     compileOnly group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310'
 
+    // Azure AD token acquisition, version managed by the Kestra platform BOM
+    implementation group: 'com.azure', name: 'azure-identity'
+
     // kestra
     annotationProcessor group: "io.kestra", name: "processor", version: kestraVersion
     compileOnly group: "io.kestra", name: "core", version: kestraVersion

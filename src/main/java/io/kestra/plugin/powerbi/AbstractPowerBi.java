@@ -1,23 +1,25 @@
 package io.kestra.plugin.powerbi;
 
 import java.io.IOException;
-import java.net.URI;
-import java.util.Map;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.util.Optional;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import com.azure.core.credential.TokenCredential;
+import com.azure.core.credential.TokenRequestContext;
+import com.azure.core.http.ProxyOptions;
+import com.azure.identity.ClientSecretCredentialBuilder;
 
 import io.kestra.core.exceptions.IllegalVariableEvaluationException;
 import io.kestra.core.http.HttpRequest;
 import io.kestra.core.http.HttpResponse;
 import io.kestra.core.http.client.HttpClient;
 import io.kestra.core.http.client.HttpClientException;
-import io.kestra.core.http.client.HttpClientRequestException;
-import io.kestra.core.http.client.HttpClientResponseException;
 import io.kestra.core.http.client.configurations.HttpConfiguration;
+import io.kestra.core.http.client.configurations.ProxyConfiguration;
 import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.tasks.Task;
 import io.kestra.core.runners.RunContext;
-import io.kestra.core.serializers.JacksonMapper;
 
 import io.micronaut.http.MediaType;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -32,7 +34,11 @@ import lombok.experimental.SuperBuilder;
 @Getter
 @NoArgsConstructor
 public abstract class AbstractPowerBi extends Task {
-    static String LOGIN_URL = "https://login.microsoftonline.com";
+    static final String DEFAULT_LOGIN_URL = "https://login.microsoftonline.com";
+    static String LOGIN_URL = DEFAULT_LOGIN_URL;
+
+    /** Test seam. The AAD round trip belongs to the SDK now, so tests stub the token rather than the endpoint. */
+    static TokenCredential CREDENTIAL;
     static String API_URL = "https://api.powerbi.com/";
 
     @NotNull
@@ -60,52 +66,71 @@ public abstract class AbstractPowerBi extends Task {
     @PluginProperty(group = "advanced")
     protected HttpConfiguration options;
 
+    /** Power BI issues tokens for this resource, `.default` asks for the app's pre-consented permissions. */
+    private static final String SCOPE = "https://analysis.windows.net/powerbi/api/.default";
+
     @Getter(AccessLevel.NONE)
-    private transient String token;
+    private transient TokenCredential credential;
 
     private String token(RunContext runContext) throws IllegalVariableEvaluationException {
-        if (this.token != null) {
-            return this.token;
+        if (this.credential == null) {
+            this.credential = this.credential(runContext);
         }
 
-        URI uri = URI.create(LOGIN_URL + "/" + runContext.render(this.tenantId) + "/oauth2/token");
+        // the credential caches and refreshes on its own, so a long `wait` cannot outlive the token
+        return this.credential
+            .getTokenSync(new TokenRequestContext().addScopes(SCOPE))
+            .getToken();
+    }
 
-        HttpRequest request = HttpRequest.builder()
-            .uri(uri)
-            .method("POST")
-            .body(
-                HttpRequest.UrlEncodedRequestBody.builder()
-                    .content(
-                        Map.of(
-                            "grant_type", "client_credentials",
-                            "client_id", runContext.render(this.clientId),
-                            "client_secret", runContext.render(this.clientSecret),
-                            "resource", "https://analysis.windows.net/powerbi/api",
-                            "scope", "https://analysis.windows.net/powerbi/api/.default"
-                        )
-                    )
-                    .build()
-            )
-            .addHeader("Content-Type", "application/x-www-form-urlencoded")
-            .build();
-
-        try (HttpClient client = new HttpClient(runContext, options)) {
-            HttpResponse<String> exchange = client.request(request, String.class);
-            Map<String, String> tokenResp = JacksonMapper.ofJson().readValue(exchange.getBody(), new TypeReference<>() {
-            });
-
-            if (tokenResp == null || !tokenResp.containsKey("access_token")) {
-                throw new IllegalStateException("Invalid token request response: " + token);
-            }
-            this.token = tokenResp.get("access_token");
-            return this.token;
-        } catch (HttpClientRequestException | HttpClientResponseException e) {
-            throw new RuntimeException("Failed to fetch access token", e);
-        } catch (HttpClientException e) {
-            throw new RuntimeException("Cient failed", e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+    private TokenCredential credential(RunContext runContext) throws IllegalVariableEvaluationException {
+        if (CREDENTIAL != null) {
+            return CREDENTIAL;
         }
+
+        ClientSecretCredentialBuilder builder = new ClientSecretCredentialBuilder()
+            .tenantId(runContext.render(this.tenantId))
+            .clientId(runContext.render(this.clientId))
+            .clientSecret(runContext.render(this.clientSecret))
+            .authorityHost(LOGIN_URL);
+
+        if (!DEFAULT_LOGIN_URL.equals(LOGIN_URL)) {
+            // instance metadata only describes the public cloud, so a custom authority cannot be validated
+            builder.disableInstanceDiscovery();
+        }
+
+        proxyOptions(runContext).ifPresent(builder::proxyOptions);
+
+        return builder.build();
+    }
+
+    /** Carries `options.proxy` onto the token call, which used to go through Kestra's HTTP client. */
+    private Optional<ProxyOptions> proxyOptions(RunContext runContext) throws IllegalVariableEvaluationException {
+        if (this.options == null || this.options.getProxy() == null) {
+            return Optional.empty();
+        }
+
+        ProxyConfiguration proxy = this.options.getProxy();
+        Proxy.Type type = runContext.render(proxy.getType()).as(Proxy.Type.class).orElse(Proxy.Type.DIRECT);
+        Optional<String> address = runContext.render(proxy.getAddress()).as(String.class);
+        Optional<Integer> port = runContext.render(proxy.getPort()).as(Integer.class);
+
+        if (type == Proxy.Type.DIRECT || address.isEmpty() || port.isEmpty()) {
+            return Optional.empty();
+        }
+
+        ProxyOptions proxyOptions = new ProxyOptions(
+            type == Proxy.Type.SOCKS ? ProxyOptions.Type.SOCKS5 : ProxyOptions.Type.HTTP,
+            new InetSocketAddress(address.get(), port.get())
+        );
+
+        Optional<String> username = runContext.render(proxy.getUsername()).as(String.class);
+        Optional<String> password = runContext.render(proxy.getPassword()).as(String.class);
+        if (username.isPresent() && password.isPresent()) {
+            proxyOptions.setCredentials(username.get(), password.get());
+        }
+
+        return Optional.of(proxyOptions);
     }
 
     protected <REQ, RES> HttpResponse<RES> request(RunContext runContext, HttpRequest request, Class<RES> responseType) throws HttpClientException, IllegalVariableEvaluationException {
