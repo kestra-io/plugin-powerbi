@@ -60,14 +60,7 @@ public abstract class AbstractPowerBi extends Task {
     @PluginProperty(group = "advanced")
     protected HttpConfiguration options;
 
-    @Getter(AccessLevel.NONE)
-    private transient String token;
-
-    private String token(RunContext runContext) throws IllegalVariableEvaluationException {
-        if (this.token != null) {
-            return this.token;
-        }
-
+    protected String fetchToken(RunContext runContext) throws IllegalVariableEvaluationException {
         URI uri = URI.create(LOGIN_URL + "/" + runContext.render(this.tenantId) + "/oauth2/token");
 
         HttpRequest request = HttpRequest.builder()
@@ -94,11 +87,11 @@ public abstract class AbstractPowerBi extends Task {
             Map<String, String> tokenResp = JacksonMapper.ofJson().readValue(exchange.getBody(), new TypeReference<>() {
             });
 
-            if (tokenResp == null || !tokenResp.containsKey("access_token")) {
-                throw new IllegalStateException("Invalid token request response: " + token);
+            var accessToken = tokenResp == null ? null : tokenResp.get("access_token");
+            if (accessToken == null || accessToken.isBlank()) {
+                throw new IllegalStateException("Invalid token request response: no 'access_token' returned");
             }
-            this.token = tokenResp.get("access_token");
-            return this.token;
+            return accessToken;
         } catch (HttpClientRequestException | HttpClientResponseException e) {
             throw new RuntimeException("Failed to fetch access token", e);
         } catch (HttpClientException e) {
@@ -108,12 +101,13 @@ public abstract class AbstractPowerBi extends Task {
         }
     }
 
-    protected <REQ, RES> HttpResponse<RES> request(RunContext runContext, HttpRequest request, Class<RES> responseType) throws HttpClientException, IllegalVariableEvaluationException {
+    protected <REQ, RES> HttpResponse<RES> request(RunContext runContext, String token, HttpRequest request, Class<RES> responseType)
+        throws HttpClientException, IllegalVariableEvaluationException {
         request = HttpRequest.builder()
             .uri(request.getUri())
             .method(request.getMethod())
             .body(request.getBody())
-            .addHeader("Authorization", "Bearer " + this.token(runContext))
+            .addHeader("Authorization", "Bearer " + token)
             .addHeader("Content-Type", MediaType.APPLICATION_JSON)
             .build();
 
