@@ -13,6 +13,7 @@ import io.kestra.core.http.HttpRequest;
 import io.kestra.core.http.HttpResponse;
 import io.kestra.core.models.annotations.Example;
 import io.kestra.core.models.annotations.Plugin;
+import io.kestra.core.models.annotations.PluginProperty;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.models.tasks.RunnableTask;
 import io.kestra.core.runners.RunContext;
@@ -26,7 +27,6 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import static io.kestra.core.utils.Rethrow.throwSupplier;
-import io.kestra.core.models.annotations.PluginProperty;
 
 @SuperBuilder
 @ToString
@@ -105,6 +105,7 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
     @Override
     public RefreshGroupDataset.Output run(RunContext runContext) throws Exception {
         Logger logger = runContext.logger();
+        var token = this.fetchToken(runContext);
 
         HttpRequest request = HttpRequest.builder()
             .uri(
@@ -116,7 +117,7 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
             .method("POST")
             .build();
 
-        HttpResponse<String> response = this.request(runContext, request, String.class);
+        HttpResponse<String> response = this.request(runContext, token, request, String.class);
 
         Optional<String> refreshId = response.getHeaders().firstValue("requestId");
 
@@ -148,7 +149,7 @@ public class RefreshGroupDataset extends AbstractPowerBi implements RunnableTask
                     .method("GET")
                     .build();
 
-                HttpResponse<Refreshes> refreshResponse = this.request(runContext, getRequest, Refreshes.class);
+                HttpResponse<Refreshes> refreshResponse = this.request(runContext, token, getRequest, Refreshes.class);
                 Optional<Refresh> refresh = Optional.ofNullable(refreshResponse.getBody())
                     .map(Refreshes::value)
                     .stream()
