@@ -37,6 +37,11 @@
 
 # Kestra PowerBI Plugin
 
+> [!WARNING]
+> **This plugin is deprecated and the repository will be archived.**
+> `io.kestra.plugin.powerbi.RefreshGroupDataset` now lives in [plugin-microsoft-fabric](https://github.com/kestra-io/plugin-microsoft-fabric) as `io.kestra.plugin.microsoft.fabric.powerbi.RefreshGroupDataset`.
+> The legacy type is kept there as an alias, so existing flows keep working. Move new flows to the Fabric plugin.
+
 ## Why
 
 - What user problem does this solve? Teams need to refresh Microsoft Power BI datasets from orchestrated workflows instead of relying on manual console work, ad hoc scripts, or disconnected schedulers.
